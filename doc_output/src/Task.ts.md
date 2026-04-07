@@ -1,140 +1,249 @@
-# Task.ts — 任务类型定义与生命周期管理
-
-> **一句话总结**：定义任务的类型体系、状态机、唯一ID生成规则，以及任务状态对象的工厂函数。
-
----
+# Task.ts — 任务系统核心类型与工具函数
 
 ## 基本信息
 
-| 项目 | 内容 |
-|------|------|
-| 文件路径 | `src/Task.ts` |
-| 文件类型 | TypeScript |
-| 代码行数 | 125 |
-| 主要职责 | 声明任务类型枚举、任务状态机枚举、任务相关接口，以及任务ID生成和初始状态对象创建的工厂函数。 |
-
----
+- **文件路径**: `/root/projects/claude-code-source-code/src/Task.ts`
+- **类型**: TypeScript 模块
+- **导出内容**: `TaskType`、`TaskStatus`、`TaskHandle`、`TaskContext`、`TaskStateBase`、`Task`、`generateTaskId()`、`createTaskStateBase()`、`isTerminalTaskStatus()`
+- **依赖关系**:
+  - 导入: `crypto`, `AppState.js`, `ids.js`, `task/diskOutput.js`
 
 ## 功能概述
 
-`Task.ts` 是整个任务调度子系统的基础类型层。它不包含任何业务逻辑实现，而是提供所有任务相关模块共享的类型契约与工厂工具函数。
-
-该文件定义了系统支持的七种任务类型（本地Bash、本地Agent、远程Agent等），以及五种任务状态（pending/running/completed/failed/killed）。通过集中定义这些枚举和类型，避免了跨模块的类型分散问题。
-
-任务ID采用"类型前缀 + 8位随机字符"的格式，字母表仅使用数字与小写字母，能够抵抗暴力枚举攻击（约2.8万亿种组合）。工厂函数 `createTaskStateBase` 为每种任务统一设置初始状态，确保所有任务都有统一的起始字段（如 `outputFile`、`outputOffset`、`notified`）。
-
----
+本文件定义了 Claude Code 任务系统的基础类型和工具函数。任务是 CLI 中异步操作的抽象，支持多种类型（Bash 命令、本地代理、远程代理、队友任务等）。每个任务有唯一ID、状态追踪、输出文件管理和生命周期控制。
 
 ## 核心内容详解
 
-### 导入与依赖
+### 1. TaskType 联合类型 (第6-14行)
 
-| 模块 | 用途 |
-|------|------|
-| `crypto.randomBytes` | 生成加密随机字节，用于任务ID |
-| `AppState` (类型) | 引用应用全局状态类型 |
-| `AgentId` (类型) | Agent唯一标识类型 |
-| `getTaskOutputPath` | 根据任务ID计算磁盘输出文件路径 |
-
-### 主要类/函数/接口
-
-- **名称**：`TaskType`
-  - **类型**：union type
-  - **用途**：枚举所有支持的任务类型
-  - **取值**：`'local_bash'` | `'local_agent'` | `'remote_agent'` | `'in_process_teammate'` | `'local_workflow'` | `'monitor_mcp'` | `'dream'`
-
-- **名称**：`TaskStatus`
-  - **类型**：union type
-  - **用途**：描述任务的生命周期状态
-  - **取值**：`'pending'` | `'running'` | `'completed'` | `'failed'` | `'killed'`
-
-- **名称**：`isTerminalTaskStatus`
-  - **类型**：function
-  - **用途**：判断任务是否处于终止状态（不会再转换）
-  - **参数**：`status: TaskStatus`
-  - **返回值**：`boolean`
-  - **关键逻辑**：当 status 为 `'completed'`、`'failed'` 或 `'killed'` 时返回 `true`，用于防止向已死任务注入消息或进行孤儿清理
-
-- **名称**：`TaskHandle`
-  - **类型**：type（接口）
-  - **用途**：持有任务ID和可选的清理回调
-  - **字段**：`taskId: string`，`cleanup?: () => void`
-
-- **名称**：`TaskContext`
-  - **类型**：type（接口）
-  - **用途**：任务执行上下文，包含中止控制器和状态访问器
-  - **字段**：`abortController`、`getAppState`、`setAppState`
-
-- **名称**：`TaskStateBase`
-  - **类型**：type（接口）
-  - **用途**：所有任务状态对象共有的基础字段集合
-  - **字段**：`id`、`type`、`status`、`description`、`toolUseId?`、`startTime`、`endTime?`、`totalPausedMs?`、`outputFile`、`outputOffset`、`notified`
-
-- **名称**：`LocalShellSpawnInput`
-  - **类型**：type（接口）
-  - **用途**：启动本地Shell任务的输入参数
-  - **字段**：`command`、`description`、`timeout?`、`toolUseId?`、`agentId?`、`kind?`（`'bash'` | `'monitor'`）
-
-- **名称**：`Task`
-  - **类型**：type（接口）
-  - **用途**：定义任务处理器的多态接口，仅保留 `kill` 方法（spawn/render已移除）
-  - **字段**：`name`、`type`、`kill(taskId, setAppState): Promise<void>`
-
-- **名称**：`generateTaskId`
-  - **类型**：function
-  - **用途**：为指定类型的任务生成唯一ID
-  - **参数**：`type: TaskType`
-  - **返回值**：`string`（格式：`{前缀}{8位随机字符}`）
-  - **关键逻辑**：使用 `randomBytes(8)` 生成随机字节，从36字符字母表（`0-9a-z`）中选取字符，前缀由 `TASK_ID_PREFIXES` 映射表决定
-
-- **名称**：`createTaskStateBase`
-  - **类型**：function
-  - **用途**：创建任务状态对象的初始基础字段
-  - **参数**：`id`、`type`、`description`、`toolUseId?`
-  - **返回值**：`TaskStateBase`
-  - **关键逻辑**：状态初始为 `'pending'`，`startTime` 取当前时间，`outputFile` 由 `getTaskOutputPath(id)` 计算，`outputOffset` 为 0，`notified` 为 `false`
-
-### 数据流与逻辑流程
-
-```
-调用方（如 BashTool）
-  → generateTaskId(type)        // 生成唯一ID
-  → createTaskStateBase(...)    // 创建初始状态
-  → 存入 AppState.tasks
-  → 状态流转：pending → running → completed/failed/killed
-  → isTerminalTaskStatus() 检查是否可以清理
+```typescript
+export type TaskType =
+  | 'local_bash'           // 本地 Bash 命令
+  | 'local_agent'          // 本地子代理
+  | 'remote_agent'         // 远程代理
+  | 'in_process_teammate'  // 进程内队友
+  | 'local_workflow'       // 本地工作流
+  | 'monitor_mcp'          // MCP 监控
+  | 'dream'                // Dream 任务
 ```
 
-### 对外接口（导出内容）
+**前缀映射** (第79-87行):
+```typescript
+const TASK_ID_PREFIXES: Record<string, string> = {
+  local_bash: 'b',           // 保持 'b' 向后兼容
+  local_agent: 'a',
+  remote_agent: 'r',
+  in_process_teammate: 't',
+  local_workflow: 'w',
+  monitor_mcp: 'm',
+  dream: 'd',
+}
+```
 
-全部内容均为导出：`TaskType`、`TaskStatus`、`isTerminalTaskStatus`、`TaskHandle`、`SetAppState`、`TaskContext`、`TaskStateBase`、`LocalShellSpawnInput`、`Task`、`generateTaskId`、`createTaskStateBase`。
+### 2. TaskStatus 联合类型 (第16-20行)
 
----
+```typescript
+export type TaskStatus =
+  | 'pending'     // 待处理
+  | 'running'     // 运行中
+  | 'completed'   // 已完成
+  | 'failed'      // 失败
+  | 'killed'      // 已终止
+```
+
+### 3. isTerminalTaskStatus() 函数 (第27-29行)
+
+检查任务是否处于终止状态：
+
+```typescript
+export function isTerminalTaskStatus(status: TaskStatus): boolean {
+  return status === 'completed' || status === 'failed' || status === 'killed'
+}
+```
+
+**用途**:
+- 防止向已终止的队友注入消息
+- 从 AppState 中驱逐已完成的任务
+- 孤儿清理路径
+
+### 4. TaskHandle 类型 (第31-34行)
+
+任务句柄：
+
+```typescript
+export type TaskHandle = {
+  taskId: string
+  cleanup?: () => void  // 可选清理函数
+}
+```
+
+### 5. SetAppState 类型 (第36行)
+
+```typescript
+export type SetAppState = (f: (prev: AppState) => AppState) => void
+```
+
+### 6. TaskContext 类型 (第38-42行)
+
+任务执行上下文：
+
+```typescript
+export type TaskContext = {
+  abortController: AbortController
+  getAppState: () => AppState
+  setAppState: SetAppState
+}
+```
+
+### 7. TaskStateBase (第45-57行)
+
+所有任务状态共享的基础字段：
+
+```typescript
+export type TaskStateBase = {
+  id: string                   // 任务ID
+  type: TaskType               // 任务类型
+  status: TaskStatus           // 当前状态
+  description: string          // 描述
+  toolUseId?: string           // 关联的工具使用ID
+  startTime: number            // 开始时间戳
+  endTime?: number             // 结束时间戳
+  totalPausedMs?: number       // 总暂停时间
+  outputFile: string           // 输出文件路径
+  outputOffset: number         // 输出偏移
+  notified: boolean            // 是否已通知
+}
+```
+
+### 8. LocalShellSpawnInput (第59-67行)
+
+本地 shell 生成输入：
+
+```typescript
+export type LocalShellSpawnInput = {
+  command: string
+  description: string
+  timeout?: number
+  toolUseId?: string
+  agentId?: AgentId
+  kind?: 'bash' | 'monitor'  // UI 显示变体
+}
+```
+
+### 9. Task 接口 (第72-76行)
+
+多态任务接口：
+
+```typescript
+export type Task = {
+  name: string
+  type: TaskType
+  kill(taskId: string, setAppState: SetAppState): Promise<void>
+}
+```
+
+**设计说明** (第69-71行):
+- `spawn` 和 `render` 从未被多态调用（已在 #22546 中移除）
+- 所有六个 `kill` 实现只使用 `setAppState`
+- `getAppState`/`abortController` 是死代码
+
+### 10. generateTaskId() 函数 (第98-106行)
+
+生成唯一任务ID：
+
+```typescript
+const TASK_ID_ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyz'
+
+export function generateTaskId(type: TaskType): string {
+  const prefix = getTaskIdPrefix(type)
+  const bytes = randomBytes(8)
+  let id = prefix
+  for (let i = 0; i < 8; i++) {
+    id += TASK_ID_ALPHABET[bytes[i]! % TASK_ID_ALPHABET.length]
+  }
+  return id
+}
+```
+
+**ID 生成算法**:
+- 前缀：类型对应字母（b/a/r/t/w/m/d）
+- 主体：8 个随机字符（0-9, a-z）
+- 组合数：36^8 ≈ 2.8 万亿，足以抵抗暴力符号链接攻击
+
+### 11. createTaskStateBase() 函数 (第108-125行)
+
+创建任务状态基础对象：
+
+```typescript
+export function createTaskStateBase(
+  id: string,
+  type: TaskType,
+  description: string,
+  toolUseId?: string,
+): TaskStateBase {
+  return {
+    id,
+    type,
+    status: 'pending',
+    description,
+    toolUseId,
+    startTime: Date.now(),
+    outputFile: getTaskOutputPath(id),
+    outputOffset: 0,
+    notified: false,
+  }
+}
+```
+
+**初始化值**:
+- 状态：'pending'
+- 开始时间：当前时间戳
+- 输出文件：通过 `getTaskOutputPath(id)` 获取
+- 输出偏移：0
+- 已通知：false
 
 ## 设计要点
 
-- **前缀区分类型**：任务ID前缀（`b`/`a`/`r`/`t`/`w`/`m`/`d`）便于在日志和调试中快速识别任务类型，`b` 保持向后兼容。
-- **安全随机性**：使用 `crypto.randomBytes` 而非 `Math.random()`，防止预测任务ID进行符号链接攻击。
-- **最小多态接口**：`Task` 接口仅保留 `kill` 方法，注释明确说明 `spawn`/`render` 已被删除（PR #22546），体现了接口的单一职责。
-- **工厂函数统一初始化**：`createTaskStateBase` 避免各模块重复初始化任务状态，防止遗漏字段。
-
----
+1. **类型安全**: 使用联合类型区分不同任务类型和状态
+2. **唯一ID**: 基于密码学安全随机数生成
+3. **输出管理**: 每个任务有独立的输出文件
+4. **生命周期追踪**: 开始/结束时间、暂停时间、通知状态
+5. **终止状态概念**: 明确定义哪些状态是终态
+6. **简化接口**: Task 接口只保留 kill 方法
 
 ## 与其他文件的关系
 
-- **依赖**：
-  - `src/state/AppState.ts`（AppState 类型）
-  - `src/types/ids.ts`（AgentId 类型）
-  - `src/utils/task/diskOutput.ts`（getTaskOutputPath）
-- **被依赖**：
-  - 各任务实现模块（BashTool、AgentTool、WorkflowTool 等）
-  - `src/QueryEngine.ts`（TaskContext 类型）
-  - `src/state/AppState.ts`（任务状态存储）
+- **tasks/**: 各任务类型实现（LocalAgentTask、RemoteAgentTask 等）
+- **state/AppStateStore.ts**: AppState 包含 tasks 字典
+- **state/teammateViewHelpers.ts**: 使用 isTerminalTaskStatus
+- **utils/task/diskOutput.ts**: getTaskOutputPath 提供输出路径
 
----
+## 使用场景
+
+```typescript
+// 创建新任务
+const taskId = generateTaskId('local_bash')
+const taskState = createTaskStateBase(taskId, 'local_bash', 'Running ls')
+
+// 检查任务是否完成
+if (isTerminalTaskStatus(taskState.status)) {
+  // 清理资源
+}
+
+// 定义任务实现
+const bashTask: Task = {
+  name: 'Bash',
+  type: 'local_bash',
+  kill: async (taskId, setAppState) => {
+    // 终止任务逻辑
+  }
+}
+```
 
 ## 注意事项
 
-- `Task` 接口的 `kill` 方法签名只接收 `setAppState`，不含 `getAppState` 和 `abortController`（注释中说明这些是"dead weight"已删除）；任务实现若需要访问状态须通过闭包捕获。
-- `TASK_ID_PREFIXES` 使用 `Record<string, string>` 而非类型安全的 `Record<TaskType, string>`，因此新增任务类型时需手动维护映射表，否则会退回到默认前缀 `'x'`。
-- `totalPausedMs` 和 `endTime` 为可选字段，计算任务实际耗时时需注意处理 `undefined`。
+1. **ID 格式**: 任务ID格式为 "前缀 + 8位随机字符"
+2. **向后兼容**: local_bash 保持 'b' 前缀
+3. **输出文件**: 通过 getTaskOutputPath 统一管理路径
+4. **Task 接口简化**: 只有 kill 方法是多态必需的
+5. **终止状态**: completed/failed/killed 三种终态
