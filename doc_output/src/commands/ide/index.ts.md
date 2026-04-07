@@ -1,70 +1,41 @@
-# index.ts — IDE命令配置
+# ide/index.ts
 
-> **一句话总结**：定义 `/ide` 命令的元数据配置。
-
----
+## 文件描述
+IDE 命令配置 - 管理 IDE 集成
 
 ## 基本信息
 
-| 项目 | 内容 |
-|------|------|
-| 文件路径 | `src/commands/ide/index.ts` |
-| 文件类型 | TypeScript |
-| 代码行数 | 11 行 |
-| 主要职责 | 导出ide命令的配置对象 |
+| 属性 | 值 |
+|------|-----|
+| 类型 | local-jsx |
+| 名称 | ide |
+| 描述 | Manage IDE integrations and show status |
+| 参数提示 | [open] |
 
----
+## 核心内容
 
-## 功能概述
-
-该文件是IDE命令的入口配置，用于管理Claude Code与IDE的集成。
-
----
-
-## 核心内容详解
-
-### 导入与依赖
-
+### 命令配置
 ```typescript
-import type { Command } from '../../commands.js'
+const ide = {
+  type: 'local-jsx',
+  name: 'ide',
+  description: 'Manage IDE integrations and show status',
+  argumentHint: '[open]',
+  load: () => import('./ide.js'),
+} satisfies Command
 ```
 
-### 命令配置对象
+## 设计点
 
-- **类型**: `Command`
-- **配置项**:
-  - `type`: `'local-jsx'` - 本地JSX命令类型
-  - `name`: `'ide'` - 命令名称
-  - `description`: `'Manage IDE integrations and show status'` - 命令描述
-  - `argumentHint`: `'[open]'` - 可选open参数
-  - `load`: `() => import('./ide.js')` - 懒加载执行函数
-
-### 对外导出
-
-- **默认导出**: `ide` 命令配置对象
-
----
-
-## 设计要点
-
-1. **可选参数**: `open` 参数用于在IDE中打开当前目录。
-
-2. **交互式管理**: 使用JSX类型提供交互式IDE选择和配置界面。
-
----
+1. **可选参数**：支持 open 参数
+2. **集成管理**：管理 IDE 连接
+3. **懒加载**：动态导入组件
 
 ## 与其他文件的关系
 
-**依赖**:
-- `Command` 类型 (`../../commands.js`)
-
-**被依赖**:
-- 命令注册系统
-
----
+- 导入 `./ide.js` 获取组件实现
 
 ## 注意事项
 
-1. **IDE检测**: 需要系统支持IDE检测，可能在某些环境中无法工作。
-
-2. **open参数**: 如果提供了open参数但未选中IDE，可能不会有任何效果。
+- 支持多种 IDE
+- 显示集成状态

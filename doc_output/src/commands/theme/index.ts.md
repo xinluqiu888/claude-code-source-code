@@ -1,27 +1,27 @@
-# memory/index.ts
+# theme/index.ts
 
 ## 文件描述
-Memory 命令配置 - 编辑 Claude 记忆文件
+Theme 命令配置 - 更改主题
 
 ## 基本信息
 
 | 属性 | 值 |
 |------|-----|
 | 类型 | local-jsx |
-| 名称 | memory |
-| 描述 | Edit Claude memory files |
+| 名称 | theme |
+| 描述 | Change the theme |
 | 可用性 | 全局可用 |
 
 ## 核心内容
 
 ### 命令配置
 ```typescript
-const memory: Command = {
+const theme = {
   type: 'local-jsx',
-  name: 'memory',
-  description: 'Edit Claude memory files',
-  load: () => import('./memory.js'),
-}
+  name: 'theme',
+  description: 'Change the theme',
+  load: () => import('./theme.js'),
+} satisfies Command
 ```
 
 ## 设计点
@@ -32,9 +32,9 @@ const memory: Command = {
 
 ## 与其他文件的关系
 
-- 导入 `./memory.js` 获取组件实现
+- 导入 `./theme.js` 获取组件实现
 
 ## 注意事项
 
-- 编辑记忆文件
-- 持久化用户偏好
+- 切换界面主题
+- 支持多种主题
