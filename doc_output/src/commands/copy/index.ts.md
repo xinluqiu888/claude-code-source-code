@@ -1,18 +1,20 @@
-# index.ts — copy 命令入口配置
+# copy/index.ts
+
+## 文件描述
+Copy 命令配置 - 复制 Claude 的回复到剪贴板
 
 ## 基本信息
 
 | 属性 | 值 |
 |------|-----|
-| 文件路径 | `/root/projects/claude-code-source-code/src/commands/copy/index.ts` |
-| 文件类型 | TypeScript (.ts) |
-| 行数 | 15 行 |
-| 主要职责 | 定义 copy 命令的元数据和懒加载配置 |
+| 类型 | local-jsx |
+| 名称 | copy |
+| 描述 | Copy Claude's last response to clipboard |
+| 可用性 | 全局可用 |
 
-## 核心内容详解
+## 核心内容
 
 ### 命令配置
-
 ```typescript
 const copy = {
   type: 'local-jsx',
@@ -22,25 +24,17 @@ const copy = {
 } satisfies Command
 ```
 
-### 关键特性
+## 设计点
 
-| 属性 | 值 | 说明 |
-|------|-----|------|
-| `type` | `'local-jsx'` | 本地 JSX 组件命令 |
-| `name` | `'copy'` | 命令名 |
-| `description` | 复制最后响应 | 清晰的描述 |
-
-### 注释说明
-
-文件注释说明：
-- 实现从 `copy.tsx` 懒加载
-- 目的是减少启动时间
-
-## 设计要点
-
-1. **轻量级入口**：仅包含元数据，实现懒加载
-2. **清晰描述**：描述中包含用法提示（`/copy N`）
+1. **便捷操作**：快速复制最近回复
+2. **支持索引**：可指定第 N 条回复
+3. **懒加载**：动态导入组件
 
 ## 与其他文件的关系
 
-- **copy.tsx**: 实际的命令实现
+- 导入 `./copy.js` 获取组件实现
+
+## 注意事项
+
+- 需要剪贴板访问权限
+- 支持指定历史消息

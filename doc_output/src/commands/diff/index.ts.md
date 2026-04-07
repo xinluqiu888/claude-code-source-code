@@ -1,18 +1,20 @@
-# index.ts — diff 命令入口配置
+# diff/index.ts
+
+## 文件描述
+Diff 命令配置 - 查看未提交的更改
 
 ## 基本信息
 
 | 属性 | 值 |
 |------|-----|
-| 文件路径 | `/root/projects/claude-code-source-code/src/commands/diff/index.ts` |
-| 文件类型 | TypeScript (.ts) |
-| 行数 | 8 行 |
-| 主要职责 | 定义 diff 命令的元数据 |
+| 类型 | local-jsx |
+| 名称 | diff |
+| 描述 | View uncommitted changes and per-turn diffs |
+| 可用性 | 全局可用 |
 
-## 核心内容详解
+## 核心内容
 
 ### 命令配置
-
 ```typescript
 export default {
   type: 'local-jsx',
@@ -22,19 +24,17 @@ export default {
 } satisfies Command
 ```
 
-### 关键特性
+## 设计点
 
-| 属性 | 值 | 说明 |
-|------|-----|------|
-| `type` | `'local-jsx'` | 本地 JSX 组件 |
-| `name` | `'diff'` | 命令名 |
-| `description` | 查看未提交更改和每轮差异 | 功能描述 |
-
-## 设计要点
-
-1. **简单配置**：无特殊启用条件或别名
-2. **清晰描述**：说明支持查看两种类型的差异
+1. **简洁配置**：无别名，单一功能
+2. **全局可用**：所有环境都可以使用
+3. **懒加载**：动态导入组件
 
 ## 与其他文件的关系
 
-- **diff.tsx**: 实际的命令实现
+- 导入 `./diff.js` 获取组件实现
+
+## 注意事项
+
+- 显示 Git 未提交更改
+- 支持每轮对话的差异对比

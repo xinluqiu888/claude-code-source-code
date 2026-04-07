@@ -1,23 +1,26 @@
-# index.ts — compact 命令入口配置
+# compact/index.ts
+
+## 文件描述
+Compact 命令配置 - 压缩会话历史
 
 ## 基本信息
 
 | 属性 | 值 |
 |------|-----|
-| 文件路径 | `/root/projects/claude-code-source-code/src/commands/compact/index.ts` |
-| 文件类型 | TypeScript (.ts) |
-| 行数 | 15 行 |
-| 主要职责 | 定义 compact 命令的元数据和启用条件 |
+| 类型 | local |
+| 名称 | compact |
+| 描述 | Clear conversation history but keep a summary in context |
+| 启用条件 | !DISABLE_COMPACT |
+| 参数提示 | <optional custom summarization instructions> |
 
-## 核心内容详解
+## 核心内容
 
 ### 命令配置
-
 ```typescript
 const compact = {
   type: 'local',
   name: 'compact',
-  description: 'Clear conversation history but keep a summary in context...',
+  description: 'Clear conversation history but keep a summary in context',
   isEnabled: () => !isEnvTruthy(process.env.DISABLE_COMPACT),
   supportsNonInteractive: true,
   argumentHint: '<optional custom summarization instructions>',
@@ -25,23 +28,19 @@ const compact = {
 } satisfies Command
 ```
 
-### 关键特性
+## 设计点
 
-| 属性 | 值 | 说明 |
-|------|-----|------|
-| `type` | `'local'` | 本地命令（非 JSX） |
-| `name` | `'compact'` | 命令名 |
-| `isEnabled` | 函数 | 检查 DISABLE_COMPACT 环境变量 |
-| `supportsNonInteractive` | `true` | 支持非交互式会话 |
-| `argumentHint` | 可选指令 | 支持自定义摘要指令 |
-
-## 设计要点
-
-1. **环境变量控制**：可通过 `DISABLE_COMPACT` 禁用压缩功能
-2. **非交互式支持**：CI/CD 环境也可使用
-3. **可选参数**：支持自定义摘要生成指令
+1. **条件启用**：可通过 DISABLE_COMPACT 禁用
+2. **非交互支持**：支持非交互模式
+3. **可选参数**：支持自定义摘要指令
+4. **懒加载**：动态导入实现
 
 ## 与其他文件的关系
 
-- **compact.ts**: 实际的命令实现
-- **envUtils.ts**: 提供 `isEnvTruthy` 函数
+- 导入 `isEnvTruthy` 从 `../../utils/envUtils.js`
+
+## 注意事项
+
+- 保留上下文摘要
+- 支持非交互模式
+- 可自定义摘要指令

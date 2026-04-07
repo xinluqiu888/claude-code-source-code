@@ -1,61 +1,52 @@
-# index.ts — cost 命令入口配置
+# cost/index.ts
+
+## 文件描述
+Cost 命令配置 - 显示会话成本
 
 ## 基本信息
 
 | 属性 | 值 |
 |------|-----|
-| 文件路径 | `/root/projects/claude-code-source-code/src/commands/cost/index.ts` |
-| 文件类型 | TypeScript (.ts) |
-| 行数 | 23 行 |
-| 主要职责 | 定义 cost 命令的元数据和可见性控制 |
+| 类型 | local |
+| 名称 | cost |
+| 描述 | Show the total cost and duration of the current session |
+| 隐藏条件 | 订阅者隐藏（Ant 用户除外） |
+| 支持非交互 | true |
 
-## 核心内容详解
+## 核心内容
 
 ### 命令配置
-
 ```typescript
 const cost = {
   type: 'local',
   name: 'cost',
   description: 'Show the total cost and duration of the current session',
   get isHidden() {
-    // 订阅用户隐藏（但 Ant 除外）
-    if (process.env.USER_TYPE === 'ant') {
-      return false
-    }
-    return isClaudeAISubscriber()
+    if (process.env.USER_TYPE === 'ant') return false;
+    return isClaudeAISubscriber();
   },
   supportsNonInteractive: true,
   load: () => import('./cost.js'),
 } satisfies Command
 ```
 
-### 关键特性
+### 隐藏逻辑
+- Ant 用户始终可见
+- 订阅者隐藏（已付费）
+- 非订阅者可见成本信息
 
-| 属性 | 值 | 说明 |
-|------|-----|------|
-| `type` | `'local'` | 本地命令（非 JSX） |
-| `name` | `'cost'` | 命令名 |
-| `isHidden` | getter | 订阅用户隐藏（Ant 除外） |
-| `supportsNonInteractive` | `true` | 支持非交互式会话 |
+## 设计点
 
-### 可见性逻辑
-
-```
-isHidden = USER_TYPE === 'ant' ? false : isClaudeAISubscriber()
-```
-
-- **Ant 员工**：始终可见（可以看到成本细分）
-- **订阅用户**：隐藏（不需要关心成本）
-- **非订阅用户**：可见
-
-## 设计要点
-
-1. **用户感知**：根据用户类型和订阅状态智能控制可见性
-2. **Ant 例外**：内部员工始终可以查看成本
-3. **订阅者友好**：订阅用户不需要关心成本，命令对他们隐藏
+1. **条件显示**：根据用户类型和订阅状态显示
+2. **非交互支持**：支持非交互模式
+3. **懒加载**：动态导入实现
 
 ## 与其他文件的关系
 
-- **cost.ts**: 实际的命令实现
-- **auth.ts**: 提供 `isClaudeAISubscriber` 函数
+- 导入 `isClaudeAISubscriber` 从 `../../utils/auth.js`
+
+## 注意事项
+
+- 订阅者看不到成本（已包含在订阅中）
+- Ant 内部用户可以看到成本明细
+- 支持非交互输出

@@ -1,18 +1,21 @@
-# index.ts — effort 命令入口配置
+# effort/index.ts
+
+## 文件描述
+Effort 命令配置 - 设置模型使用努力级别
 
 ## 基本信息
 
 | 属性 | 值 |
 |------|-----|
-| 文件路径 | `/root/projects/claude-code-source-code/src/commands/effort/index.ts` |
-| 文件类型 | TypeScript (.ts) |
-| 行数 | 13 行 |
-| 主要职责 | 定义 effort 命令的元数据和即时执行条件 |
+| 类型 | local-jsx |
+| 名称 | effort |
+| 描述 | Set effort level for model usage |
+| 参数提示 | [low|medium|high|max|auto] |
+| 即时执行 | 动态计算 |
 
-## 核心内容详解
+## 核心内容
 
 ### 命令配置
-
 ```typescript
 export default {
   type: 'local-jsx',
@@ -20,38 +23,27 @@ export default {
   description: 'Set effort level for model usage',
   argumentHint: '[low|medium|high|max|auto]',
   get immediate() {
-    return shouldInferenceConfigCommandBeImmediate()
+    return shouldInferenceConfigCommandBeImmediate();
   },
   load: () => import('./effort.js'),
 } satisfies Command
 ```
 
-### 关键特性
+### 即时执行
+- 使用 `shouldInferenceConfigCommandBeImmediate()` 动态计算
+- 根据配置决定是否立即执行
 
-| 属性 | 值 | 说明 |
-|------|-----|------|
-| `type` | `'local-jsx'` | 本地 JSX 组件 |
-| `name` | `'effort'` | 命令名 |
-| `argumentHint` | 可选级别 | 提示可用选项 |
-| `immediate` | getter | 动态决定是否即时执行 |
+## 设计点
 
-### 即时执行条件
-
-```typescript
-get immediate() {
-  return shouldInferenceConfigCommandBeImmediate()
-}
-```
-
-`shouldInferenceConfigCommandBeImmediate()` 函数决定配置命令是否应该即时执行，可能基于当前会话状态或设置。
-
-## 设计要点
-
-1. **动态即时性**：根据条件决定是否即时执行
-2. **级别提示**：参数提示中列出所有可用级别
-3. **配置命令**：作为推理配置命令处理
+1. **动态即时性**：根据配置决定执行时机
+2. **参数提示**：提供可选值提示
+3. **懒加载**：动态导入组件
 
 ## 与其他文件的关系
 
-- **effort.tsx**: 实际的命令实现
-- **immediateCommand.ts**: 提供 `shouldInferenceConfigCommandBeImmediate`
+- 导入 `shouldInferenceConfigCommandBeImmediate` 从 `../../utils/immediateCommand.js`
+
+## 注意事项
+
+- 影响模型响应深度
+- 可选值：low, medium, high, max, auto

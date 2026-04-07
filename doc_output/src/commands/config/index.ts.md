@@ -1,18 +1,21 @@
-# index.ts — config 命令入口配置
+# config/index.ts
+
+## 文件描述
+Config 命令配置 - 打开配置面板
 
 ## 基本信息
 
 | 属性 | 值 |
 |------|-----|
-| 文件路径 | `/root/projects/claude-code-source-code/src/commands/config/index.ts` |
-| 文件类型 | TypeScript (.ts) |
-| 行数 | 11 行 |
-| 主要职责 | 定义 config/settings 命令的元数据 |
+| 类型 | local-jsx |
+| 名称 | config |
+| 别名 | settings |
+| 描述 | Open config panel |
+| 可用性 | 全局可用 |
 
-## 核心内容详解
+## 核心内容
 
 ### 命令配置
-
 ```typescript
 const config = {
   aliases: ['settings'],
@@ -23,21 +26,17 @@ const config = {
 } satisfies Command
 ```
 
-### 关键特性
+## 设计点
 
-| 属性 | 值 | 说明 |
-|------|-----|------|
-| `name` | `'config'` | 主命令名 |
-| `aliases` | `['settings']` | `/settings` 别名 |
-| `type` | `'local-jsx'` | 本地 JSX 组件 |
-| `description` | 打开配置面板 | 功能描述 |
-
-## 设计要点
-
-1. **别名友好**：`settings` 是更直观的别名
-2. **简单配置**：无特殊启用条件
-3. **配置集中**：统一的配置管理入口
+1. **别名支持**：settings 别名便于用户理解
+2. **全局可用**：所有环境都可以使用
+3. **懒加载**：动态导入组件
 
 ## 与其他文件的关系
 
-- **config.tsx**: 实际的配置面板实现
+- 导入 `./config.js` 获取组件实现
+
+## 注意事项
+
+- 配置面板包含多项设置
+- 支持持久化配置
